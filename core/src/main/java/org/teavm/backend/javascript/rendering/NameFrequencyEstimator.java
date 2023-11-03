@@ -15,22 +15,13 @@
  */
 package org.teavm.backend.javascript.rendering;
 
-import java.util.Set;
 import org.teavm.backend.javascript.codegen.NameFrequencyConsumer;
-import org.teavm.backend.javascript.codegen.RememberedSource;
 import org.teavm.backend.javascript.codegen.SourceWriterSink;
-import org.teavm.backend.javascript.decompile.PreparedClass;
-import org.teavm.backend.javascript.decompile.PreparedMethod;
-import org.teavm.model.ClassReaderSource;
-import org.teavm.model.ElementModifier;
-import org.teavm.model.FieldHolder;
 import org.teavm.model.FieldReference;
 import org.teavm.model.MethodDescriptor;
-import org.teavm.model.MethodReader;
 import org.teavm.model.MethodReference;
-import org.teavm.model.ValueType;
 
-class NameFrequencyEstimator implements SourceWriterSink {
+public class NameFrequencyEstimator implements SourceWriterSink {
     static final MethodReference MONITOR_ENTER_METHOD = new MethodReference(Object.class,
             "monitorEnter", Object.class, void.class);
     static final MethodReference MONITOR_ENTER_SYNC_METHOD = new MethodReference(Object.class,
@@ -39,81 +30,11 @@ class NameFrequencyEstimator implements SourceWriterSink {
             "monitorExit", Object.class, void.class);
     static final MethodReference MONITOR_EXIT_SYNC_METHOD = new MethodReference(Object.class,
             "monitorExitSync", Object.class, void.class);
-    private static final MethodDescriptor CLINIT_METHOD = new MethodDescriptor("<clinit>", ValueType.VOID);
 
     private final NameFrequencyConsumer consumer;
-    private final ClassReaderSource classSource;
-    private final Set<MethodReference> asyncFamilyMethods;
 
-    NameFrequencyEstimator(NameFrequencyConsumer consumer, ClassReaderSource classSource,
-            Set<MethodReference> asyncFamilyMethods) {
+    public NameFrequencyEstimator(NameFrequencyConsumer consumer) {
         this.consumer = consumer;
-        this.classSource = classSource;
-        this.asyncFamilyMethods = asyncFamilyMethods;
-    }
-
-    public void estimate(PreparedClass cls) {
-        // Declaration
-        consumer.consume(cls.getName());
-        if (cls.getParentName() != null) {
-            consumer.consume(cls.getParentName());
-        }
-        for (FieldHolder field : cls.getClassHolder().getFields()) {
-            consumer.consume(new FieldReference(cls.getName(), field.getName()));
-            if (field.getModifiers().contains(ElementModifier.STATIC)) {
-                consumer.consume(cls.getName());
-            }
-        }
-
-        // Methods
-        MethodReader clinit = classSource.get(cls.getName()).getMethod(CLINIT_METHOD);
-        for (PreparedMethod method : cls.getMethods()) {
-            consumer.consume(method.reference);
-            if (asyncFamilyMethods.contains(method.reference)) {
-                consumer.consume(method.reference);
-            }
-            if (clinit != null && (method.modifiers.contains(ElementModifier.STATIC)
-                    || method.reference.getName().equals("<init>"))) {
-                consumer.consume(method.reference);
-            }
-            if (!method.modifiers.contains(ElementModifier.STATIC)) {
-                consumer.consume(method.reference.getDescriptor());
-                consumer.consume(method.reference);
-            }
-            if (method.async) {
-                consumer.consumeFunction("$rt_nativeThread");
-                consumer.consumeFunction("$rt_nativeThread");
-                consumer.consumeFunction("$rt_resuming");
-                consumer.consumeFunction("$rt_invalidPointer");
-            }
-
-            method.body.replay(this, RememberedSource.FILTER_REF);
-        }
-
-        if (clinit != null) {
-            consumer.consumeFunction("$rt_eraseClinit");
-        }
-
-        // Metadata
-        consumer.consume(cls.getName());
-        consumer.consume(cls.getName());
-        if (cls.getParentName() != null) {
-            consumer.consume(cls.getParentName());
-        }
-        for (String iface : cls.getClassHolder().getInterfaces()) {
-            consumer.consume(iface);
-        }
-
-        boolean hasFields = false;
-        for (FieldHolder field : cls.getClassHolder().getFields()) {
-            if (!field.hasModifier(ElementModifier.STATIC)) {
-                hasFields = true;
-                break;
-            }
-        }
-        if (!hasFields) {
-            consumer.consumeFunction("$rt_classWithoutFields");
-        }
     }
 
     @Override

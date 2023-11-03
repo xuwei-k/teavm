@@ -15,8 +15,6 @@
  */
 package org.teavm.backend.javascript;
 
-import com.carrotsearch.hppc.ObjectIntHashMap;
-import com.carrotsearch.hppc.ObjectIntMap;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -29,9 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -51,7 +47,10 @@ import org.teavm.backend.javascript.codegen.AliasProvider;
 import org.teavm.backend.javascript.codegen.DefaultAliasProvider;
 import org.teavm.backend.javascript.codegen.DefaultNamingStrategy;
 import org.teavm.backend.javascript.codegen.MinifyingAliasProvider;
+import org.teavm.backend.javascript.codegen.NamingOrderer;
 import org.teavm.backend.javascript.codegen.OutputSourceWriterBuilder;
+import org.teavm.backend.javascript.codegen.RememberedSource;
+import org.teavm.backend.javascript.codegen.RememberingSourceWriter;
 import org.teavm.backend.javascript.codegen.SourceWriter;
 import org.teavm.backend.javascript.decompile.PreparedClass;
 import org.teavm.backend.javascript.decompile.PreparedMethod;
@@ -61,6 +60,7 @@ import org.teavm.backend.javascript.intrinsics.ref.WeakReferenceDependencyListen
 import org.teavm.backend.javascript.intrinsics.ref.WeakReferenceGenerator;
 import org.teavm.backend.javascript.intrinsics.ref.WeakReferenceTransformer;
 import org.teavm.backend.javascript.rendering.MethodBodyRenderer;
+import org.teavm.backend.javascript.rendering.NameFrequencyEstimator;
 import org.teavm.backend.javascript.rendering.Renderer;
 import org.teavm.backend.javascript.rendering.RenderingContext;
 import org.teavm.backend.javascript.rendering.RenderingUtil;
@@ -432,15 +432,47 @@ public class JavaScriptTarget implements TeaVMTarget, TeaVMJavaScriptHost {
 
         var builder = new OutputSourceWriterBuilder(naming);
         builder.setMinified(obfuscated);
-        var sourceWriter = builder.build(writer);
 
-        sourceWriter.setDebugInformationEmitter(debugEmitterToUse);
-
-        var renderer = new Renderer(sourceWriter, asyncMethods, asyncFamilyMethods, renderingContext);
-        RuntimeRenderer runtimeRenderer = new RuntimeRenderer(classes, sourceWriter);
+        var rememberingWriter = new RememberingSourceWriter(debugEmitter != null);
+        var renderer = new Renderer(rememberingWriter, asyncMethods, renderingContext);
         renderer.setProperties(controller.getProperties());
         renderer.setMinifying(obfuscated);
         renderer.setProgressConsumer(controller::reportProgress);
+
+        for (RendererListener listener : rendererListeners) {
+            listener.begin(renderer, target);
+        }
+        if (!renderer.render(clsNodes)) {
+            return;
+        }
+        var declarations = rememberingWriter.save();
+        rememberingWriter.clear();
+
+        renderer.renderStringPool();
+        renderer.renderStringConstants();
+        renderer.renderCompatibilityStubs();
+        for (var entry : controller.getEntryPoints().entrySet()) {
+            rememberingWriter.appendFunction("$rt_exports").append(".").append(entry.getKey()).ws().append("=").ws();
+            var ref = entry.getValue().getMethod();
+            rememberingWriter.appendFunction("$rt_mainStarter").append("(").appendMethodBody(ref);
+            rememberingWriter.append(");").newLine();
+            rememberingWriter.appendFunction("$rt_exports").append(".").append(entry.getKey()).append(".")
+                    .append("javaException").ws().append("=").ws().appendFunction("$rt_javaException")
+                    .append(";").newLine();
+        }
+
+        for (var listener : rendererListeners) {
+            listener.complete();
+        }
+        var epilogue = rememberingWriter.save();
+        rememberingWriter.clear();
+
+        var orderer = new NamingOrderer();
+        var frequencyEstimator = new NameFrequencyEstimator(orderer);
+        declarations.replay(frequencyEstimator, RememberedSource.FILTER_REF);
+        epilogue.replay(frequencyEstimator, RememberedSource.FILTER_REF);
+        orderer.apply(naming);
+
         if (debugEmitter != null) {
             for (PreparedClass preparedClass : clsNodes) {
                 for (PreparedMethod preparedMethod : preparedClass.getMethods()) {
@@ -452,48 +484,25 @@ public class JavaScriptTarget implements TeaVMTarget, TeaVMJavaScriptHost {
                     return;
                 }
             }
-            renderer.setDebugEmitter(debugEmitter);
         }
-        renderer.prepare(clsNodes);
 
+        var sourceWriter = builder.build(writer);
+        sourceWriter.setDebugInformationEmitter(debugEmitterToUse);
         printWrapperStart(sourceWriter);
 
-        for (RendererListener listener : rendererListeners) {
-            listener.begin(renderer, target);
-        }
         int start = sourceWriter.getOffset();
 
+        RuntimeRenderer runtimeRenderer = new RuntimeRenderer(classes, sourceWriter);
         runtimeRenderer.renderRuntime();
-        sourceWriter.append("var ").append(renderer.getNaming().getScopeName()).ws().append("=").ws()
-                .append("Object.create(null);").newLine();
-        if (!renderer.render(clsNodes)) {
-            return;
-        }
-        runtimeRenderer.renderHandWrittenRuntime("array.js");
-        renderer.renderStringPool();
-        renderer.renderStringConstants();
-        renderer.renderCompatibilityStubs();
-
         runtimeRenderer.renderHandWrittenRuntime("long.js");
         if (threadLibraryUsed) {
             runtimeRenderer.renderHandWrittenRuntime("thread.js");
         } else {
             runtimeRenderer.renderHandWrittenRuntime("simpleThread.js");
         }
-
-        for (var entry : controller.getEntryPoints().entrySet()) {
-            sourceWriter.appendFunction("$rt_exports").append(".").append(entry.getKey()).ws().append("=").ws();
-            var ref = entry.getValue().getMethod();
-            sourceWriter.appendFunction("$rt_mainStarter").append("(").appendMethodBody(ref);
-            sourceWriter.append(");").newLine();
-            sourceWriter.appendFunction("$rt_exports").append(".").append(entry.getKey()).append(".")
-                    .append("javaException").ws().append("=").ws().appendFunction("$rt_javaException")
-                    .append(";").newLine();
-        }
-
-        for (var listener : rendererListeners) {
-            listener.complete();
-        }
+        declarations.write(sourceWriter, 0);
+        runtimeRenderer.renderHandWrittenRuntime("array.js");
+        epilogue.write(sourceWriter, 0);
 
         printWrapperEnd(sourceWriter);
 
@@ -565,9 +574,11 @@ public class JavaScriptTarget implements TeaVMTarget, TeaVMJavaScriptHost {
             return;
         }
 
+        /*
         System.out.println("Total output size: " + STATS_NUM_FORMAT.format(totalSize));
         System.out.println("Metadata size: " + getSizeWithPercentage(renderer.getMetadataSize(), totalSize));
         System.out.println("String pool size: " + getSizeWithPercentage(renderer.getStringPoolSize(), totalSize));
+
 
         ObjectIntMap<String> packageSizeMap = new ObjectIntHashMap<>();
         for (String className : renderer.getClassesInStats()) {
@@ -582,6 +593,8 @@ public class JavaScriptTarget implements TeaVMTarget, TeaVMJavaScriptHost {
             System.out.println("Package '" + packageName + "' size: "
                     + getSizeWithPercentage(packageSizeMap.get(packageName), totalSize));
         }
+
+         */
     }
 
     private String getSizeWithPercentage(int size, int totalSize) {

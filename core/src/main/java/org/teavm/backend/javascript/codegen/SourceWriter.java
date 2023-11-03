@@ -143,4 +143,16 @@ public abstract class SourceWriter implements Appendable, SourceWriterSink {
 
     @Override
     public abstract void emitClass(String className);
+
+    @Override
+    public abstract void markClassStart(String className);
+
+    @Override
+    public abstract void markClassEnd();
+
+    @Override
+    public abstract void markSectionStart(int id);
+
+    @Override
+    public abstract void markSectionEnd();
 }

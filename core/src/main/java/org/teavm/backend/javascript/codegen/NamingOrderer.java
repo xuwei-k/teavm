@@ -36,7 +36,6 @@ public class NamingOrderer implements NameFrequencyConsumer {
         entry.frequency++;
     }
 
-
     @Override
     public void consumeInit(MethodReference method) {
         String key = "I:" + method;

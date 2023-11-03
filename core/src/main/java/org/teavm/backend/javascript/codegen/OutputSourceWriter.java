@@ -140,9 +140,6 @@ public class OutputSourceWriter extends SourceWriter implements LocationProvider
     }
 
     private SourceWriter appendName(ScopedName name) {
-        if (name.scoped) {
-            append(naming.getScopeName()).append(".");
-        }
         append(name.value);
         return this;
     }
@@ -294,5 +291,25 @@ public class OutputSourceWriter extends SourceWriter implements LocationProvider
     @Override
     public int getOffset() {
         return offset;
+    }
+
+    @Override
+    public void markClassStart(String className) {
+
+    }
+
+    @Override
+    public void markClassEnd() {
+
+    }
+
+    @Override
+    public void markSectionStart(int id) {
+
+    }
+
+    @Override
+    public void markSectionEnd() {
+
     }
 }

@@ -109,4 +109,16 @@ public interface SourceWriterSink {
 
     default void emitClass(String className) {
     }
+
+    default void markClassStart(String className) {
+    }
+
+    default void markClassEnd() {
+    }
+
+    default void markSectionStart(int id) {
+    }
+
+    default void markSectionEnd() {
+    }
 }

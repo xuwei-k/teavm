@@ -24,7 +24,8 @@ public class RememberedSource implements SourceFragment {
     public static final int FILTER_TEXT = 1;
     public static final int FILTER_REF = 2;
     public static final int FILTER_DEBUG = 4;
-    public static final int FILTER_ALL = FILTER_TEXT | FILTER_REF | FILTER_DEBUG;
+    public static final int FILTER_STATS = 8;
+    public static final int FILTER_ALL = FILTER_TEXT | FILTER_REF | FILTER_DEBUG | FILTER_STATS;
 
     private byte[] commands;
     private String chars;
@@ -210,6 +211,32 @@ public class RememberedSource implements SourceFragment {
                         sink.emitMethod(methodIndex >= 0 ? methodDescriptors[methodIndex] : null);
                     }
                     intArgIndex++;
+                    break;
+
+                case RememberingSourceWriter.MARK_CLASS_START:
+                    if ((filter & FILTER_STATS) != 0) {
+                        sink.markClassStart(strings[intArgs[intArgIndex]]);
+                    }
+                    intArgIndex++;
+                    break;
+
+                case RememberingSourceWriter.MARK_CLASS_END:
+                    if ((filter & FILTER_STATS) != 0) {
+                        sink.markClassEnd();
+                    }
+                    break;
+
+                case RememberingSourceWriter.MARK_SECTION_START:
+                    if ((filter & FILTER_STATS) != 0) {
+                        sink.markSectionStart(intArgs[intArgIndex]);
+                    }
+                    intArgIndex++;
+                    break;
+
+                case RememberingSourceWriter.MARK_SECTION_END:
+                    if ((filter & FILTER_STATS) != 0) {
+                        sink.markClassEnd();
+                    }
                     break;
             }
         }

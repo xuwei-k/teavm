@@ -48,6 +48,10 @@ public class RememberingSourceWriter extends SourceWriter {
     static final byte EMIT_STATEMENT_START = 18;
     static final byte EMIT_METHOD = 19;
     static final byte EMIT_CLASS = 20;
+    static final byte MARK_CLASS_START = 22;
+    static final byte MARK_CLASS_END = 23;
+    static final byte MARK_SECTION_START = 24;
+    static final byte MARK_SECTION_END = 25;
 
     private boolean debug;
 
@@ -288,6 +292,32 @@ public class RememberingSourceWriter extends SourceWriter {
         } else {
             appendStringArg(className);
         }
+    }
+
+    @Override
+    public void markClassStart(String className) {
+        flush();
+        commands.add(MARK_CLASS_START);
+        appendStringArg(className);
+    }
+
+    @Override
+    public void markClassEnd() {
+        flush();
+        commands.add(MARK_CLASS_END);
+    }
+
+    @Override
+    public void markSectionStart(int id) {
+        flush();
+        commands.add(MARK_SECTION_START);
+        intArgs.add(id);
+    }
+
+    @Override
+    public void markSectionEnd() {
+        flush();
+        commands.add(MARK_SECTION_END);
     }
 
     public void flush() {
