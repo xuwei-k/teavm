@@ -41,7 +41,7 @@ dependencies {
     implementation(libs.jetty.websocket.client)
     implementation(libs.jetty.websocket.client)
 
-    "js"(project(":tools:deobfuscator-js", "js"))
+    //"js"(project(":tools:deobfuscator-js", "js"))
 }
 
 tasks.withType<Jar>().configureEach {

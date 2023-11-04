@@ -197,6 +197,20 @@ public class RememberedSource implements SourceFragment {
                     }
                     break;
 
+                case RememberingSourceWriter.EMIT_VARIABLES:
+                    var count = intArgs[intArgIndex++];
+                    if ((filter & FILTER_DEBUG) != 0) {
+                        var names = new String[count];
+                        for (var i = 0; i < count; ++i) {
+                            names[i] = strings[intArgs[intArgIndex++]];
+                        }
+                        var jsName = strings[intArgs[intArgIndex++]];
+                        sink.emitVariables(names, jsName);
+                    } else {
+                        intArgIndex += count + 1;
+                    }
+                    break;
+
                 case RememberingSourceWriter.EMIT_CLASS:
                     if ((filter & FILTER_DEBUG) != 0) {
                         var classIndex = intArgs[intArgIndex];

@@ -269,6 +269,12 @@ public class OutputSourceWriter extends SourceWriter implements LocationProvider
     }
 
     @Override
+    public SourceWriter emitVariables(String[] names, String jsName) {
+        debugInformationEmitter.emitVariable(names, jsName);
+        return this;
+    }
+
+    @Override
     public void emitMethod(MethodDescriptor method) {
         debugInformationEmitter.emitMethod(method);
     }

@@ -46,6 +46,7 @@ public class RememberingSourceWriter extends SourceWriter {
     static final byte ENTER_LOCATION = 16;
     static final byte EXIT_LOCATION = 17;
     static final byte EMIT_STATEMENT_START = 18;
+    static final byte EMIT_VARIABLES = 26;
     static final byte EMIT_METHOD = 19;
     static final byte EMIT_CLASS = 20;
     static final byte MARK_CLASS_START = 22;
@@ -262,6 +263,20 @@ public class RememberingSourceWriter extends SourceWriter {
         if (debug) {
             flush();
             commands.add(EMIT_STATEMENT_START);
+        }
+        return this;
+    }
+
+    @Override
+    public SourceWriter emitVariables(String[] names, String jsName) {
+        if (debug) {
+            flush();
+            commands.add(EMIT_VARIABLES);
+            intArgs.add(names.length);
+            for (var name : names) {
+                appendStringArg(name);
+            }
+            appendStringArg(jsName);
         }
         return this;
     }

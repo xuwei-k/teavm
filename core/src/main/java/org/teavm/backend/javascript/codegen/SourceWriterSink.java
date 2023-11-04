@@ -104,6 +104,10 @@ public interface SourceWriterSink {
         return this;
     }
 
+    default SourceWriterSink emitVariables(String[] names, String jsName) {
+        return this;
+    }
+
     default void emitMethod(MethodDescriptor method) {
     }
 
