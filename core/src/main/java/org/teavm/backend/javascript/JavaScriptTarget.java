@@ -47,7 +47,6 @@ import org.teavm.backend.javascript.codegen.AliasProvider;
 import org.teavm.backend.javascript.codegen.DefaultAliasProvider;
 import org.teavm.backend.javascript.codegen.DefaultNamingStrategy;
 import org.teavm.backend.javascript.codegen.MinifyingAliasProvider;
-import org.teavm.backend.javascript.codegen.NamingOrderer;
 import org.teavm.backend.javascript.codegen.OutputSourceWriterBuilder;
 import org.teavm.backend.javascript.codegen.RememberedSource;
 import org.teavm.backend.javascript.codegen.RememberingSourceWriter;
@@ -467,11 +466,10 @@ public class JavaScriptTarget implements TeaVMTarget, TeaVMJavaScriptHost {
         var epilogue = rememberingWriter.save();
         rememberingWriter.clear();
 
-        var orderer = new NamingOrderer();
-        var frequencyEstimator = new NameFrequencyEstimator(orderer);
+        var frequencyEstimator = new NameFrequencyEstimator();
         declarations.replay(frequencyEstimator, RememberedSource.FILTER_REF);
         epilogue.replay(frequencyEstimator, RememberedSource.FILTER_REF);
-        orderer.apply(naming);
+        frequencyEstimator.apply(naming);
 
         if (debugEmitter != null) {
             for (PreparedClass preparedClass : clsNodes) {

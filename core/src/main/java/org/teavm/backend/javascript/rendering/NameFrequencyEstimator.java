@@ -15,7 +15,12 @@
  */
 package org.teavm.backend.javascript.rendering;
 
-import org.teavm.backend.javascript.codegen.NameFrequencyConsumer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import org.teavm.backend.javascript.codegen.NamingStrategy;
 import org.teavm.backend.javascript.codegen.SourceWriterSink;
 import org.teavm.model.FieldReference;
 import org.teavm.model.MethodDescriptor;
@@ -31,63 +36,136 @@ public class NameFrequencyEstimator implements SourceWriterSink {
     static final MethodReference MONITOR_EXIT_SYNC_METHOD = new MethodReference(Object.class,
             "monitorExitSync", Object.class, void.class);
 
-    private final NameFrequencyConsumer consumer;
-
-    public NameFrequencyEstimator(NameFrequencyConsumer consumer) {
-        this.consumer = consumer;
-    }
+    private Map<String, Entry> entries = new HashMap<>();
+    private Set<String> reservedNames = new HashSet<>();
 
     @Override
     public SourceWriterSink appendClass(String cls) {
-        consumer.consume(cls);
+        var key = "c:" + cls;
+        var entry = entries.get(key);
+        if (entry == null) {
+            entry = new Entry();
+            entry.operation = naming -> naming.getNameFor(cls);
+            entries.put(key, entry);
+        }
+        entry.frequency++;
         return this;
     }
 
     @Override
     public SourceWriterSink appendField(FieldReference field) {
-        consumer.consume(field);
+        var key = "f:" + field;
+        var entry = entries.get(key);
+        if (entry == null) {
+            entry = new Entry();
+            entry.operation = naming -> naming.getNameFor(field);
+            entries.put(key, entry);
+        }
+        entry.frequency++;
         return this;
     }
 
     @Override
     public SourceWriterSink appendStaticField(FieldReference field) {
-        consumer.consumeStatic(field);
+        var key = "sf:" + field;
+        var entry = entries.get(key);
+        if (entry == null) {
+            entry = new Entry();
+            entry.operation = naming -> naming.getFullNameFor(field);
+            entries.put(key, entry);
+        }
+        entry.frequency++;
         return this;
     }
 
     @Override
     public SourceWriterSink appendMethod(MethodDescriptor method) {
-        consumer.consume(method);
+        var key = "r:" + method;
+        var entry = entries.get(key);
+        if (entry == null) {
+            entry = new Entry();
+            entry.operation = naming -> naming.getNameFor(method);
+            entries.put(key, entry);
+        }
+        entry.frequency++;
         return this;
     }
 
     @Override
     public SourceWriterSink appendMethodBody(MethodReference method) {
-        consumer.consume(method);
+        var key = "R:" + method;
+        var entry = entries.get(key);
+        if (entry == null) {
+            entry = new Entry();
+            entry.operation = naming -> naming.getFullNameFor(method);
+            entries.put(key, entry);
+        }
+        entry.frequency++;
         return this;
     }
 
     @Override
     public SourceWriterSink appendFunction(String name) {
-        consumer.consumeFunction(name);
+        var key = "n:" + name;
+        var entry = entries.get(key);
+        if (entry == null) {
+            entry = new Entry();
+            entry.operation = naming -> naming.getNameForFunction(name);
+            entries.put(key, entry);
+        }
+        entry.frequency++;
         return this;
     }
 
     @Override
     public SourceWriterSink appendGlobal(String name) {
-        consumer.consumeGlobal(name);
+        reservedNames.add(name);
         return this;
     }
 
     @Override
     public SourceWriterSink appendInit(MethodReference method) {
-        consumer.consumeInit(method);
+        var key = "I:" + method;
+        var entry = entries.get(key);
+        if (entry == null) {
+            entry = new Entry();
+            entry.operation = naming -> naming.getNameForInit(method);
+            entries.put(key, entry);
+        }
+        entry.frequency++;
         return this;
     }
 
     @Override
     public SourceWriterSink appendClassInit(String className) {
-        consumer.consumeClassInit(className);
+        var key = "C:" + className;
+        var entry = entries.get(key);
+        if (entry == null) {
+            entry = new Entry();
+            entry.operation = naming -> naming.getNameForClassInit(className);
+            entries.put(key, entry);
+        }
+        entry.frequency++;
         return this;
+    }
+
+    public void apply(NamingStrategy naming) {
+        for (var name : reservedNames) {
+            naming.reserveName(name);
+        }
+        var entryList = new ArrayList<>(entries.values());
+        entryList.sort((o1, o2) -> Integer.compare(o2.frequency, o1.frequency));
+        for (var entry : entryList) {
+            entry.operation.perform(naming);
+        }
+    }
+
+    private static class Entry {
+        NamingOperation operation;
+        int frequency;
+    }
+
+    private interface NamingOperation {
+        void perform(NamingStrategy naming);
     }
 }
