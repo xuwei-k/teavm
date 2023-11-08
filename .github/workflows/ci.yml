@@ -6,7 +6,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -25,4 +25,13 @@ jobs:
         mkdir -p "$HOME/.wasmtime/bin/"
         echo 'wasmtime "$@"'> "$HOME/.wasmtime/bin/wasmtime"
         chmod +x "$HOME/.wasmtime/bin/wasmtime"
-    - run: ./gradlew -Pteavm.tests.c=false build --stacktrace # TODO enable C test
+    - run: ./gradlew
+           "--no-daemon"
+           "--no-configuration-cache"
+           "-Pteavm.tests.optimized=true"
+           "-Pteavm.tests.js=true"
+           "-Pteavm.tests.c=false" # TODO enable C test
+           "-Pteavm.tests.wasm=true"
+           "-Pteavm.tests.wasi=true"
+           "-Pteavm.junit.js.decodeStack=false"
+           build
