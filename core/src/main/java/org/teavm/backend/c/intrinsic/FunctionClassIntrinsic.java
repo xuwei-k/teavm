@@ -1,5 +1,5 @@
 /*
- *  Copyright 2018 Alexey Andreev.
+ *  Copyright 2023 Alexey Andreev.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,36 +16,21 @@
 package org.teavm.backend.c.intrinsic;
 
 import org.teavm.ast.InvocationExpr;
+import org.teavm.interop.Function;
 import org.teavm.model.MethodReference;
 
-public class PlatformClassIntrinsic implements Intrinsic {
-    private static final String PLATFORM_CLASS = "org.teavm.platform.PlatformClass";
-
+public class FunctionClassIntrinsic implements Intrinsic {
     @Override
     public boolean canHandle(MethodReference method) {
-        if (!method.getClassName().equals(PLATFORM_CLASS)) {
-            return false;
-        }
-
-        switch (method.getName()) {
-            case "getJavaClass":
-            case "getMetadata":
-            case "setJavaClass":
-                return true;
-        }
-        return false;
+        return method.getClassName().equals(Function.class.getName())
+                && method.getName().equals("isNull");
     }
 
     @Override
     public void apply(IntrinsicContext context, InvocationExpr invocation) {
-        switch (invocation.getMethod().getName()) {
-            case "getJavaClass":
-            case "getMetadata":
-                context.emit(invocation.getArguments().get(0));
-                break;
-            case "setJavaClass":
-                break;
-            case "getFlags":
-        }
+        context.writer().print("(");
+        context.emit(invocation.getArguments().get(0));
+        context.writer().print(" == NULL");
+        context.writer().print(")");
     }
 }
