@@ -1,0 +1,25 @@
+on:
+  pull_request:
+  push:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v3
+      with:
+        java-version: 11
+        distribution: adopt
+    - uses: gradle/gradle-build-action@v2
+    - uses: bytecodealliance/actions/wasmtime/setup@v1
+    - run: |
+        mkdir -p "$HOME/.wasmtime/bin/"
+        echo 'wasmtime "$@"'> "$HOME/.wasmtime/bin/wasmtime"
+        chmod +x "$HOME/.wasmtime/bin/wasmtime"
+    - run: ./gradlew build
+    - uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: test-reports
+        path: "tests/build/reports/tests/test"
