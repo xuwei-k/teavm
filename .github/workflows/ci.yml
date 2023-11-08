@@ -22,6 +22,6 @@ jobs:
     - uses: bytecodealliance/actions/wasmtime/setup@v1
     - run: |
         mkdir -p "$HOME/.wasmtime/bin/"
-        echo wasmtime > "$HOME/.wasmtime/bin/wasmtime"
+        echo 'wasmtime "$@"'> "$HOME/.wasmtime/bin/wasmtime"
         chmod +x "$HOME/.wasmtime/bin/wasmtime"
     - run: ./gradlew build --stacktrace
