@@ -28,4 +28,4 @@ jobs:
           "-Pteavm.tests.c=false" \
           "-Pteavm.tests.wasm=false" \
           "-Pteavm.tests.wasi=false" \
-          test
+          build
