@@ -21,8 +21,8 @@ jobs:
     - name: run tests
       run: |
         ./gradlew \
-          "-Pteavm.tests.js=true" \
-          "-Pteavm.tests.c=false" \
-          "-Pteavm.tests.wasm=true" \
-          "-Pteavm.tests.wasi=true" \
+          "-Pteavm.tests.js=false" \
+          "-Pteavm.tests.c=true" \
+          "-Pteavm.tests.wasm=false" \
+          "-Pteavm.tests.wasi=false" \
           build
