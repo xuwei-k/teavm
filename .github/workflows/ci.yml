@@ -3,16 +3,21 @@ on:
     branches:
     - master
   push:
-    branches:
-    - master
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        java:
+        - 11
+        - 17
+        - 21
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-java@v3
       with:
-        java-version: 11
+        java-version: "${{ matrix.java }}"
         distribution: adopt
-    - run: ./gradlew publishToMavenLocal
+    - run: ./gradlew build --stacktrace
