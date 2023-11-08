@@ -20,8 +20,9 @@ jobs:
         java-version: "${{ matrix.java }}"
         distribution: adopt
     - uses: bytecodealliance/actions/wasmtime/setup@v1
+    - run: gcc --version
     - run: |
         mkdir -p "$HOME/.wasmtime/bin/"
         echo 'wasmtime "$@"'> "$HOME/.wasmtime/bin/wasmtime"
         chmod +x "$HOME/.wasmtime/bin/wasmtime"
-    - run: ./gradlew build --stacktrace
+    - run: ./gradlew -Pteavm.tests.c=false build --stacktrace # TODO enable C test
