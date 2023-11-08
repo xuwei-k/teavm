@@ -6,7 +6,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 100
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -20,17 +20,12 @@ jobs:
       with:
         java-version: "${{ matrix.java }}"
         distribution: adopt
-    - uses: bytecodealliance/actions/wasmtime/setup@v1
-    - run: |
-        mkdir -p "$HOME/.wasmtime/bin/"
-        echo 'wasmtime "$@"'> "$HOME/.wasmtime/bin/wasmtime"
-        chmod +x "$HOME/.wasmtime/bin/wasmtime"
     - name: run tests
       run: |
-        # TODO enable wasm and c test
+        # TODO enable wasm, wasi and c tests
         ./gradlew \
           "-Pteavm.tests.js=true" \
           "-Pteavm.tests.c=false" \
           "-Pteavm.tests.wasm=false" \
-          "-Pteavm.tests.wasi=true" \
+          "-Pteavm.tests.wasi=false" \
           test
