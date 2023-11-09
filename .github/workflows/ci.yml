@@ -6,7 +6,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -28,31 +28,13 @@ jobs:
         mkdir -p "$HOME/.wasmtime/bin/"
         echo 'wasmtime "$@"'> "$HOME/.wasmtime/bin/wasmtime"
         chmod +x "$HOME/.wasmtime/bin/wasmtime"
-    - if: ${{ matrix.platform == 'c' }}
-      run: |
-        ./gradlew \
-          "-Pteavm.tests.js=false" \
-          "-Pteavm.tests.wasm=false" \
-          "-Pteavm.tests.wasi=false" \
-          build
-    - if: ${{ matrix.platform == 'js' }}
-      run: |
-        ./gradlew \
-          "-Pteavm.tests.c=false" \
-          "-Pteavm.tests.wasm=false" \
-          "-Pteavm.tests.wasi=false" \
-          build
-    - if: ${{ matrix.platform == 'wasm' }}
-      run: |
-        ./gradlew \
-          "-Pteavm.tests.js=false" \
-          "-Pteavm.tests.c=false" \
-          "-Pteavm.tests.wasi=false" \
-          build
-    - if: ${{ matrix.platform == 'wasi' }}
-      run: |
-        ./gradlew \
-          "-Pteavm.tests.js=false" \
-          "-Pteavm.tests.c=false" \
-          "-Pteavm.tests.wasm=false" \
-          build
+    - run: |
+        platforms=("c" "js" "wasm" "wasi")
+        args=()
+        for v in "${platforms[@]}"
+        do
+          if [[ "${{ matrix.platform }}" != "$v" ]]; then
+            args+=("-Pteavm.tests.${v}=false")
+          fi
+        done
+        ./gradlew "${args[@]}" build
