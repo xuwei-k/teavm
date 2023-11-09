@@ -7,14 +7,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-        - c
-        - js
-        - wasm
-        - wasi
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-java@v3
@@ -22,21 +14,9 @@ jobs:
         java-version: 11
         distribution: adopt
     - uses: gradle/gradle-build-action@v2
-    - if: ${{ matrix.platform == 'wasi' }}
-      uses: bytecodealliance/actions/wasmtime/setup@v1
-    - if: ${{ matrix.platform == 'wasi' }}
-      run: |
+    - uses: bytecodealliance/actions/wasmtime/setup@v1
+    - run: |
         mkdir -p "$HOME/.wasmtime/bin/"
         echo 'wasmtime "$@"'> "$HOME/.wasmtime/bin/wasmtime"
         chmod +x "$HOME/.wasmtime/bin/wasmtime"
-    - run: |
-        platforms=("c" "js" "wasm" "wasi")
-        args=()
-        for v in "${platforms[@]}"
-        do
-          if [[ "${{ matrix.platform }}" != "$v" ]]; then
-            args+=("-Pteavm.tests.${v}=false")
-          fi
-        done
-        echo "${args[@]}"
-        ./gradlew "${args[@]}" build
+    - run: ./gradlew build
