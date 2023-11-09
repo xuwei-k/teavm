@@ -41,6 +41,7 @@ jobs:
         echo "${args[@]}"
         ./gradlew "${args[@]}" build
     - uses: actions/upload-artifact@v3
+      if: always()
       with:
         name: "test-reports-${{ matrix.platform }}"
         path: "tests/build/reports/tests/test"
