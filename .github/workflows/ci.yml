@@ -40,3 +40,7 @@ jobs:
         done
         echo "${args[@]}"
         ./gradlew "${args[@]}" build
+    - uses: actions/upload-artifact@v3
+      with:
+        name: test-reports
+        path: "tests/build/reports/tests/test"
