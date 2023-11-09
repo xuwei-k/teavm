@@ -21,6 +21,7 @@ jobs:
       with:
         java-version: 11
         distribution: adopt
+    - uses: gradle/gradle-build-action@v2
     - if: ${{ matrix.platform == 'wasi' }}
       uses: bytecodealliance/actions/wasmtime/setup@v1
     - if: ${{ matrix.platform == 'wasi' }}
