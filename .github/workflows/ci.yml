@@ -29,10 +29,7 @@ jobs:
         mkdir -p "$HOME/.wasmtime/bin/"
         echo 'wasmtime "$@"'> "$HOME/.wasmtime/bin/wasmtime"
         chmod +x "$HOME/.wasmtime/bin/wasmtime"
-    - run: sudo apt install gcc-13 g++-13
     - run: |
-        export CC=/usr/bin/gcc-13
-        export CXX=/usr/bin/g++-13
         gcc --version
         platforms=("c" "js" "wasm" "wasi")
         args=()
@@ -45,7 +42,8 @@ jobs:
         echo "${args[@]}"
         ./gradlew "${args[@]}" build
     - uses: actions/upload-artifact@v3
-      if: always()
+      if: failure()
       with:
         name: "test-reports-${{ matrix.platform }}"
         path: "tests/build/reports/tests/test"
+        retention-days: 5
