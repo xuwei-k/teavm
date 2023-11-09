@@ -6,7 +6,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -37,4 +37,5 @@ jobs:
             args+=("-Pteavm.tests.${v}=false")
           fi
         done
+        echo "${args[@]}"
         ./gradlew "${args[@]}" build
