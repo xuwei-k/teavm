@@ -87,7 +87,7 @@ tasks.test {
     maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
 }
 
-tasks.withType<Test> {
+tasks.withType<Test>().configureEach {
     this.testLogging {
         this.showStandardStreams = true
     }
